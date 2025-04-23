@@ -5,18 +5,16 @@
       DISCONNECTED FROM SERVER. RECONNECTING...
     </div>
     <div class="input-wrapper">
-      <input 
-        type="text" 
+      <input
+        type="text"
         :value="modelValue"
         @input="updateValue"
-        placeholder="Type your message..." 
+        placeholder="Type your message..."
         @keyup.enter="emitSend"
         maxlength="2000"
+        autofocus
       />
-      <button 
-        @click="emitSend" 
-        :disabled="!isInputValid || !isSocketConnected"
-      >
+      <button @click="emitSend" :disabled="!isInputValid || !isSocketConnected">
         <i class="fas fa-paper-plane"></i>
         <span>TRANSMIT</span>
       </button>
@@ -25,7 +23,8 @@
       <span v-if="isSending">TRANSMITTING DATA...</span>
       <span v-else-if="!isSocketConnected">CONNECTION LOST</span>
       <span v-else-if="modelValue.length > 1800">
-        <i class="fas fa-exclamation-triangle"></i> CHAR LIMIT: {{ modelValue.length }}/2000
+        <i class="fas fa-exclamation-triangle"></i> CHAR LIMIT:
+        {{ modelValue.length }}/2000
       </span>
       <span v-else>DATA STREAM READY ({{ modelValue.length }}/2000)</span>
     </div>
@@ -33,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed } from "vue";
 
 const props = defineProps<{
   modelValue: string;
@@ -42,25 +41,27 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: string): void;
-  (e: 'send'): void;
+  (e: "update:modelValue", value: string): void;
+  (e: "send"): void;
 }>();
 
 const updateValue = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  emit('update:modelValue', target.value);
+  emit("update:modelValue", target.value);
 };
 
 const emitSend = () => {
   if (isInputValid.value) {
-    emit('send');
+    emit("send");
   }
 };
 
 const isInputValid = computed(() => {
-  return props.modelValue.trim().length > 0 && 
-         props.modelValue.length <= 2000 && 
-         props.isSocketConnected;
+  return (
+    props.modelValue.trim().length > 0 &&
+    props.modelValue.length <= 2000 &&
+    props.isSocketConnected
+  );
 });
 </script>
 
@@ -127,4 +128,4 @@ const isInputValid = computed(() => {
 .connection-error i {
   margin-right: 8px;
 }
-</style> 
+</style>
