@@ -1,0 +1,23 @@
+services:
+  server:
+    build:
+      context: ./server
+    container_name: ChatCursor-server
+    ports:
+      - "3003:3003"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+    container_name: ChatCursor-client
+    ports:
+      - "8181:8181"
+    depends_on:
+      - server
+    restart: unless-stopped 
