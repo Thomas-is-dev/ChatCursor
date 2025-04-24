@@ -1,21 +1,26 @@
-import { defineConfig, loadEnv } from 'vite';
-import vue from '@vitejs/plugin-vue';
-import { resolve } from 'path';
+import { defineConfig, loadEnv } from "vite";
+import vue from "@vitejs/plugin-vue";
+import { resolve } from "path";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env files based on mode
   // This will load .env, .env.local, .env.[mode], .env.[mode].local
   const env = loadEnv(mode, process.cwd());
-  
+
   console.log(`Running in ${mode} mode`);
-  
+
   // Get socket configuration from environment variables
-  const socketUrl = env.VITE_SOCKET_URL || 'http://localhost:3003';
-  const socketPath = env.VITE_SOCKET_PATH || '/socket.io';
-  
-  console.log(`Socket URL: ${socketUrl.replace(/^(https?:\/\/[^\/]+).*$/, '$1')}/**** (masked for security)`);
-  
+  const socketUrl = env.VITE_SOCKET_URL || "http://localhost:3003";
+  const socketPath = env.VITE_SOCKET_PATH || "/socket.io";
+
+  console.log(
+    `Socket URL: ${socketUrl.replace(
+      /^(https?:\/\/[^\/]+).*$/,
+      "$1"
+    )}/**** (masked for security)`
+  );
+
   return {
     plugins: [vue()],
     resolve: {
@@ -66,10 +71,10 @@ export default defineConfig(({ mode }) => {
         MODE: mode,
         SOCKET_URL: socketUrl,
         SOCKET_PATH: socketPath,
-        DEBUG_MODE: env.VITE_DEBUG_MODE === 'true',
-        ENABLE_ANIMATIONS: env.VITE_ENABLE_ANIMATIONS === 'true',
-        ENABLE_VOICE_MESSAGES: env.VITE_ENABLE_VOICE_MESSAGES === 'true'
-      }
-    }
+        DEBUG_MODE: env.VITE_DEBUG_MODE === "true",
+        ENABLE_ANIMATIONS: env.VITE_ENABLE_ANIMATIONS === "true",
+        ENABLE_VOICE_MESSAGES: env.VITE_ENABLE_VOICE_MESSAGES === "true",
+      },
+    },
   };
-}); 
+});

@@ -1,23 +1,26 @@
-services:
-  server:
-    build:
-      context: ./server
-    container_name: ChatCursor-server
-    ports:
-      - "3003:3003"
-    volumes:
-      - ./server:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=production
-    restart: unless-stopped
+version: "3.8"
 
+services:
   client:
     build:
       context: ./client
-    container_name: ChatCursor-client
+      dockerfile: Dockerfile
     ports:
       - "8282:8282"
     depends_on:
       - server
+    environment:
+      - VITE_SOCKET_URL=http://localhost:3003
+      - VITE_SOCKET_PATH=/socket.io
+    restart: unless-stopped
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=production
+      - PORT=3003
     restart: unless-stopped

@@ -1,12 +1,12 @@
 /// <reference types="vite/client" />
-import io from 'socket.io-client';
+import io, { Socket } from 'socket.io-client';
 
 // Get environment variables with fallbacks
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3003';
 const SOCKET_PATH = import.meta.env.VITE_SOCKET_PATH || '/socket.io';
 
 // Create and export socket instance
-export const socket = io(SOCKET_URL, {
+export const socket: Socket = io(SOCKET_URL, {
   path: SOCKET_PATH,
   autoConnect: false,
   reconnection: true,

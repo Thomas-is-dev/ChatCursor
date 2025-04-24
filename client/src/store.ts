@@ -1,5 +1,6 @@
 import { reactive } from 'vue';
-import { Socket, io } from 'socket.io-client';
+import { Socket } from 'socket.io-client';
+import io from 'socket.io-client';
 import { encryptMessage, decryptMessage } from './utils/encryption';
 
 /**

@@ -1,15 +1,17 @@
 FROM node:23-slim
 
+# Set working directory
 WORKDIR /app
 
+# Copy package files and install dependencies
 COPY package*.json ./
-
 RUN npm install
 
+# Copy the source files
 COPY . .
 
-RUN npm install -g ts-node
-
+# Expose the port (optionnel mais utile si tu veux mapper depuis l'extérieur)
 EXPOSE 3003
 
-CMD ["ts-node", "index.ts"] 
+# Start the app (équivalent à "npm run dev")
+CMD ["npm", "run", "dev"]

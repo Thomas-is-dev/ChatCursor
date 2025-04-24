@@ -2,18 +2,23 @@ FROM node:23-slim AS base
 
 WORKDIR /usr/src/app
 
+# Install dependencies
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
+# Build stage
 FROM base AS build
 
-COPY . .
+# Copiez les fichiers du client et le dossier shared
+COPY . . 
+
+# Construisez l'application
 RUN npm run build
 
-ENV NODE_ENV=production
+# Production stage
+FROM nginx:1.28-alpine-slim
 
-FROM nginx:1.27.5-alpine-slim
-
+# Copy built assets and nginx config
 COPY --from=build /usr/src/app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/nginx.conf
 

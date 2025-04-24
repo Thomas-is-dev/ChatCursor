@@ -33,7 +33,7 @@
 import { ref, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue';
 import { useRouter, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import store from '../store';
-import { socket } from '../socket';
+import { socket } from '../socket.ts';
 
 // Async component imports for better performance
 const UserSidebar = defineAsyncComponent(() => import('../components/UserSidebar.vue'));
@@ -75,7 +75,7 @@ onMounted(() => {
 });
 
 // Use beforeRouteEnter navigation guard
-router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+router.beforeEach((to: RouteLocationNormalized, _: RouteLocationNormalized, next: NavigationGuardNext) => {
   if (to.name === 'chat') {
     next(() => {
       focusMessageInput();
