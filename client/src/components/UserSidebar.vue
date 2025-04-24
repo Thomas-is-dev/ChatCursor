@@ -1,7 +1,7 @@
 <template>
   <div class="chat-sidebar">
     <div class="sidebar-header">
-      <h2>NET<span class="accent">NODES</span></h2>
+      <h2>LIST<span class="accent">CHATTERS</span></h2>
       <div class="online-indicator">
         <div class="pulse"></div>
         <span>{{ users.length }} ONLINE</span>

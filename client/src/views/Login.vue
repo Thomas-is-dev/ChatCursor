@@ -3,7 +3,7 @@
         <div class="cyberpunk-glow"></div>
         <div class="login-card">
             <div class="card-header">
-                <h1>NEURAL<span class="accent">LINK</span></h1>
+                <h1>> MEGA<span class="accent"> CHAT</span></h1>
                 <div class="subtitle">SECURE ACCESS PROTOCOL</div>
             </div>
 
@@ -21,7 +21,7 @@
                 <div class="input-wrapper">
                     <i class="fas fa-user icon"></i>
                     <input key="uniqueKey" type="text" id="userName" v-model="username"
-                        placeholder="Enter your username" @keyup.enter="login" />
+                        placeholder="Enter your username" @keyup.enter="login" maxlength="20" />
                 </div>
             </div>
 
@@ -86,6 +86,12 @@ const setupEventListeners = () => {
 
 const login = () => {
     if (!username.value.trim() || store.hasConnectionError()) return;
+    
+    // Validate username length
+    if (username.value.length > 20) {
+        errorMessage.value = "Username must be 20 characters or less";
+        return;
+    }
 
     console.log('Attempting login with username:', username.value);
     // Emit login event with username

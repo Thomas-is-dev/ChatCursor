@@ -1,7 +1,7 @@
 <template>
   <div class="chat-header">
     <div class="header-title">
-      <h2>NEURAL<span class="accent">LINK</span></h2>
+      <h2>MAIN<span class="accent">FRAME</span></h2>
       <div class="subtitle">GLOBAL COMMUNICATIONS NETWORK</div>
     </div>
     

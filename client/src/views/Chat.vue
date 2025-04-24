@@ -317,6 +317,12 @@ const scrollToBottom = () => {
 // Logout and redirect to login
 const logout = () => {
   console.log('Logging out');
+  
+  // Emit specific logout event before clearing username
+  if (socket && socket.connected) {
+    socket.emit('user_logout', username.value);
+  }
+  
   store.clearUsername();
   router.push('/');
 };

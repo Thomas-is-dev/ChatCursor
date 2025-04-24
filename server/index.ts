@@ -42,7 +42,13 @@ io.on('connection', (socket: Socket) => {
 
   // Handle user login
   socket.on('login', (username: string) => {
-    // Check if username is already taken
+    // Validate username length
+    if (!username || username.length > 20) {
+      socket.emit('login_error', 'Username must be 20 characters or less');
+      return;
+    }
+    
+    // Check if username is already taken by an active connection
     const usernameTaken = Array.from(users.values()).includes(username);
     
     if (usernameTaken) {
@@ -77,6 +83,12 @@ io.on('connection', (socket: Socket) => {
   // Handle user reconnection (for page refreshes)
   socket.on('reconnect_user', (username: string) => {
     console.log(`User ${username} reconnecting...`);
+    
+    // Validate username length
+    if (!username || username.length > 20) {
+      console.log(`Reconnection rejected: invalid username length`);
+      return;
+    }
     
     // Check if this username is already in the list
     const existingSocketId = [...users.entries()]
@@ -153,15 +165,38 @@ io.on('connection', (socket: Socket) => {
     }
   });
 
+  // Handle explicit user logout
+  socket.on('user_logout', (username: string) => {
+    console.log(`User ${username} explicitly logged out`);
+    
+    // Remove this user from the users map
+    users.delete(socket.id);
+    
+    // Check if username exists in any other active connections
+    const usernameStillExists = Array.from(users.values()).includes(username);
+    if (!usernameStillExists) {
+      // If no other connection has this username, notify all clients
+      io.emit('user_left', username);
+    }
+    
+    logUserCount();
+  });
+
   // Handle disconnection
   socket.on('disconnect', () => {
     const username = users.get(socket.id);
     if (username) {
       users.delete(socket.id);
-      // Note: We don't delete the encryption key in case they reconnect
+      
+      // Remove username from all active connections
+      const usernameStillExists = Array.from(users.values()).includes(username);
+      if (!usernameStillExists) {
+        // Only emit user_left if the username is not connected via another socket
+        io.emit('user_left', username);
+      }
+      
       console.log(`User ${username} disconnected`);
       logUserCount();
-      io.emit('user_left', username);
     }
   });
 });
