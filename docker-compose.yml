@@ -17,7 +17,7 @@ services:
       context: ./client
     container_name: ChatCursor-client
     ports:
-      - "8181:8181"
+      - "8282:8282"
     depends_on:
       - server
-    restart: unless-stopped 
+    restart: unless-stopped
