@@ -41,11 +41,17 @@ const store = reactive<Store>({
     if (!this.socket) {
       console.log('Initializing socket connection');
       try {
-        // Use proxying through the development server
-        console.log('Connecting via Socket.IO proxy');
+        // Get socket URL and path from environment configuration
+        // Using __APP_ENV__ which is defined in vite.config.ts
+        const socketUrl = (window as any).__APP_ENV__?.SOCKET_URL || '/';
+        const socketPath = (window as any).__APP_ENV__?.SOCKET_PATH || '/socket.io';
         
-        const socket = io('/', {
-          path: '/socket.io',
+        // For security, don't log the full URL
+        const maskedUrl = socketUrl.replace(/^(https?:\/\/[^\/]+).*$/, '$1');
+        console.log(`Connecting to socket at ${maskedUrl}/**** with path ${socketPath}`);
+        
+        const socket = io(socketUrl, {
+          path: socketPath,
           transports: ['websocket', 'polling'],
           reconnectionAttempts: Infinity,
           reconnectionDelay: 1000,
