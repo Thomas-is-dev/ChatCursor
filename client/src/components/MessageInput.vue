@@ -6,6 +6,7 @@
     </div>
     <div class="input-wrapper">
       <input
+        ref="inputElement"
         type="text"
         :value="modelValue"
         @input="updateValue"
@@ -32,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed, ref, onMounted } from "vue";
 
 const props = defineProps<{
   modelValue: string;
@@ -44,6 +45,17 @@ const emit = defineEmits<{
   (e: "update:modelValue", value: string): void;
   (e: "send"): void;
 }>();
+
+const inputElement = ref<HTMLInputElement | null>(null);
+
+onMounted(() => {
+  // Focus input element when component is mounted
+  setTimeout(() => {
+    if (inputElement.value) {
+      inputElement.value.focus();
+    }
+  }, 100); // Small delay to ensure DOM is fully rendered
+});
 
 const updateValue = (event: Event) => {
   const target = event.target as HTMLInputElement;
@@ -63,6 +75,16 @@ const isInputValid = computed(() => {
     props.isSocketConnected
   );
 });
+
+// Focus method to be called from parent component
+const focus = () => {
+  if (inputElement.value) {
+    inputElement.value.focus();
+  }
+};
+
+// Expose the focus method to parent components
+defineExpose({ focus });
 </script>
 
 <style scoped>

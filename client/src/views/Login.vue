@@ -21,7 +21,9 @@
                 <div class="input-wrapper">
                     <i class="fas fa-user icon"></i>
                     <input key="uniqueKey" type="text" id="userName" v-model="username"
-                        placeholder="Enter your username" @keyup.enter="login" maxlength="20" />
+                        placeholder="Enter your username" @keyup.enter="login" 
+                        minlength="3" maxlength="20" 
+                        ref="usernameInput" autofocus />
                 </div>
             </div>
 
@@ -36,66 +38,67 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue';
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
-import { Socket } from 'socket.io-client';
 import store from '../store';
+import { socket } from '../socket';
 
-const username = ref<string>('');
-const errorMessage = ref<string>('');
 const router = useRouter();
-let socket: Socket;
+const username = ref('');
+const errorMessage = ref<string>('');
+const isLoading = ref(false);
+const usernameInput = ref<HTMLInputElement | null>(null);
 
-const connectionError = computed(() => {
-    return store.getConnectionError();
-});
+const connectionError = computed(() => store.getConnectionError());
 
 onMounted(() => {
-    console.log('Login component mounted');
-    // Get socket from store
-    socket = store.getSocket();
-
-    // Setup listeners
-    setupEventListeners();
-});
-
-onUnmounted(() => {
-    // Remove event listeners but don't disconnect
-    if (socket) {
-        socket.off('login_success');
-        socket.off('login_error');
-    }
-});
-
-const setupEventListeners = () => {
-    // Listen for login success
-    socket.on('login_success', (name: string) => {
-        console.log('Login successful:', name);
-        // Store username in the store
-        store.setUsername(name);
-        // Navigate to chat view
+    // Check if already logged in
+    const storedUsername = store.getUsername();
+    if (storedUsername) {
         router.push('/chat');
-    });
-
-    // Listen for login error
-    socket.on('login_error', (message: string) => {
-        console.log('Login error:', message);
-        errorMessage.value = message;
-    });
-};
-
-const login = () => {
-    if (!username.value.trim() || store.hasConnectionError()) return;
-    
-    // Validate username length
-    if (username.value.length > 20) {
-        errorMessage.value = "Username must be 20 characters or less";
         return;
     }
 
-    console.log('Attempting login with username:', username.value);
-    // Emit login event with username
-    socket.emit('login', username.value);
+    // Setup socket connection
+    if (!socket.connected) {
+        socket.connect();
+    }
+});
+
+onUnmounted(() => {
+    // Clean up event listeners
+    socket.off('loginSuccess');
+    socket.off('loginError');
+});
+
+// Socket event handlers
+socket.on('loginSuccess', (name: string) => {
+    store.setUsername(name);
+    router.push('/chat');
+});
+
+socket.on('loginError', ({ message }: { message: string }) => {
+    errorMessage.value = message;
+    isLoading.value = false;
+});
+
+const login = async () => {
+    const trimmedUsername = username.value.trim();
+    
+    if (!trimmedUsername) {
+        errorMessage.value = 'Username is required';
+        return;
+    }
+    
+    isLoading.value = true;
+    errorMessage.value = '';
+    
+    // Ensure socket is connected before attempting login
+    if (!socket.connected) {
+        socket.connect();
+    }
+    
+    socket.emit('login', { username: trimmedUsername });
 };
 </script>
 

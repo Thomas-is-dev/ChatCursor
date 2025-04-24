@@ -19,6 +19,7 @@
       />
       
       <MessageInput 
+        ref="messageInput"
         v-model="newMessage"
         :isSocketConnected="isSocketConnected"
         :isSending="isSending"
@@ -30,9 +31,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, defineAsyncComponent } from 'vue';
-import { useRouter } from 'vue-router';
-import { Socket } from 'socket.io-client';
+import { useRouter, RouteLocationNormalized, NavigationGuardNext } from 'vue-router';
 import store from '../store';
+import { socket } from '../socket';
 
 // Async component imports for better performance
 const UserSidebar = defineAsyncComponent(() => import('../components/UserSidebar.vue'));
@@ -49,84 +50,73 @@ interface Message {
 
 // Reactive state
 const router = useRouter();
-const username = ref('');
+const username = ref(store.getUsername());
 const users = ref<string[]>([]);
 const messages = ref<Message[]>([]);
 const newMessage = ref('');
 const messagesContainer = ref<{ scrollToBottom: () => void } | null>(null);
+const messageInput = ref<{ focus: () => void } | null>(null);
 const isSending = ref(false);
 const processedMessageIds = ref(new Set<string>());
-const isSocketConnected = ref(false);
-
-// Socket instance
-let socket: Socket;
+const isSocketConnected = ref(socket.connected);
 
 // Lifecycle hooks
 onMounted(() => {
-  console.log('Chat component mounted');
-  initializeChat();
+  // Check if user is logged in
+  if (!username.value) {
+    router.push('/login');
+    return;
+  }
+
+  // Initialize socket connection and event listeners
+  setupSocketListeners();
+  socket.connect();
+  focusMessageInput();
+});
+
+// Use beforeRouteEnter navigation guard
+router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+  if (to.name === 'chat') {
+    next(() => {
+      focusMessageInput();
+    });
+  } else {
+    next();
+  }
 });
 
 onUnmounted(() => {
-  console.log('Chat component unmounted');
   cleanupEventListeners();
+  socket.disconnect();
 });
-
-// Initialize chat connection and user session
-const initializeChat = () => {
-  // Check if user is logged in
-  const storedUsername = store.getUsername();
-  if (!storedUsername) {
-    console.log('No username found, redirecting to login');
-    router.push('/');
-    return;
-  }
-  
-  username.value = storedUsername;
-  console.log('Logged in as:', username.value);
-  
-  // Get socket from store
-  socket = store.getSocket();
-  
-  // Set initial connection status
-  isSocketConnected.value = socket.connected;
-  
-  // Monitor socket connection status
-  socket.on('connect', () => {
-    console.log('Socket connected');
-    isSocketConnected.value = true;
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected');
-    isSocketConnected.value = false;
-  });
-  
-  // Clean up any existing listeners first to prevent duplicates
-  cleanupEventListeners();
-  
-  // Reconnect the user - will reestablish their presence
-  store.reconnect();
-  
-  // Setup event listeners
-  setupSocketListeners();
-}
 
 // Clean up event listeners to prevent memory leaks
 const cleanupEventListeners = () => {
-  if (socket) {
-    socket.off('receive_message');
-    socket.off('user_list');
-    socket.off('user_joined');
-    socket.off('user_left');
-    socket.off('reconnection_successful');
-  }
+  socket.off('receive_message');
+  socket.off('user_list');
+  socket.off('user_joined');
+  socket.off('user_left');
+  socket.off('reconnection_successful');
+  socket.off('connect');
+  socket.off('disconnect');
 };
 
 // Setup socket event listeners
 const setupSocketListeners = () => {
-  // Listen for messages
-  socket.on('receive_message', (messageData: { 
+  // Connection status
+  socket.on('connect', () => {
+    isSocketConnected.value = true;
+    if (username.value) {
+      socket.emit('reconnect', { username: username.value });
+    }
+  });
+  
+  socket.on('disconnect', () => {
+    isSocketConnected.value = false;
+  });
+
+  // Message handling
+  socket.on('receive_message', async (messageData: { 
     encryptedContent: string, 
     iv: string,
     username: string, 
@@ -136,33 +126,24 @@ const setupSocketListeners = () => {
     handleIncomingMessage(messageData);
   });
   
-  // Listen for user list updates
+  // User management
   socket.on('user_list', (userList: string[]) => {
-    console.log('User list received:', userList);
     users.value = userList;
   });
   
-  // Listen for new users joining
   socket.on('user_joined', (user: string) => {
-    console.log('User joined:', user);
     if (!users.value.includes(user)) {
       users.value.push(user);
+      addSystemMessage(`${user} has joined the network`);
     }
-    
-    addSystemMessage(`${user} has joined the network`);
   });
   
-  // Listen for users leaving
   socket.on('user_left', (user: string) => {
-    console.log('User left:', user);
     users.value = users.value.filter(u => u !== user);
-    
     addSystemMessage(`${user} has disconnected from the network`);
   });
   
-  // Listen for successful reconnection
   socket.on('reconnection_successful', (user: string) => {
-    console.log('Reconnection successful for:', user);
     if (!users.value.includes(user)) {
       users.value.push(user);
     }
@@ -204,10 +185,12 @@ const handleIncomingMessage = (messageData: {
       } else {
         // Decrypt if not found locally
         displayMessage = store.decryptMessage(messageData.encryptedContent, messageData.iv);
+        // Server has already filtered the message, no need to filter again
       }
     } else {
       // Decrypt message from other users
       displayMessage = store.decryptMessage(messageData.encryptedContent, messageData.iv);
+      // Server has already filtered the message, no need to filter again
     }
   } catch (error) {
     console.error('Failed to decrypt message:', error);
@@ -252,16 +235,13 @@ const sendMessage = () => {
   // Generate a unique message ID
   const messageId = `${username.value}-${new Date().toISOString()}-${Math.random().toString(36).substring(2, 9)}`;
   
-  // Store the plaintext message locally
-  const plainTextMessage = newMessage.value;
-
   try {
-    // Encrypt the message on the client side
-    const encryptedData = store.encryptMessage(plainTextMessage);
+    // Send the raw unfiltered message to the server for server-side filtering and encryption
+    const rawMessage = newMessage.value;
     
-    // Create the message locally first (using plaintext) to improve user experience
+    // Create a temporary local message (will be replaced when server sends back filtered version)
     const localMessage: Message = {
-      message: plainTextMessage,
+      message: rawMessage,
       username: username.value,
       time: new Date().toLocaleTimeString(),
       id: messageId
@@ -278,8 +258,8 @@ const sendMessage = () => {
       console.log('Message acknowledgement timed out');
     }, 5000); // 5 seconds timeout
     
-    // Send encrypted message to server
-    socket.emit('send_message', encryptedData, messageId, (acknowledgement: boolean) => {
+    // Send unencrypted message to server for filtering and broadcasting
+    socket.emit('send_unencrypted_message', rawMessage, messageId, (acknowledgement: boolean) => {
       clearTimeout(timeoutId);
       
       if (!acknowledgement) {
@@ -303,6 +283,9 @@ const sendMessage = () => {
   
   // Scroll to bottom to show the new message
   scrollToBottom();
+  
+  // Focus the input after sending
+  focusMessageInput();
 };
 
 // Scroll to bottom of message container
@@ -312,6 +295,27 @@ const scrollToBottom = () => {
       messagesContainer.value.scrollToBottom();
     }
   });
+};
+
+// Focus the message input field
+const focusMessageInput = () => {
+  if (!messageInput.value) {
+    const maxAttempts = 5;
+    let attempts = 0;
+    
+    const tryFocus = () => {
+      if (messageInput.value) {
+        messageInput.value.focus();
+      } else if (attempts < maxAttempts) {
+        attempts++;
+        setTimeout(tryFocus, 100);
+      }
+    };
+    
+    tryFocus();
+  } else {
+    messageInput.value.focus();
+  }
 };
 
 // Logout and redirect to login
@@ -324,7 +328,7 @@ const logout = () => {
   }
   
   store.clearUsername();
-  router.push('/');
+  router.push('/login');
 };
 </script>
 

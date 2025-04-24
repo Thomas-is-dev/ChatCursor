@@ -18,7 +18,7 @@
           <span class="message-user">{{ message.username }}</span>
           <span class="message-time">{{ message.time }}</span>
         </div>
-        <div class="message-content">{{ message.message }}</div>
+        <div class="message-content">{{ filterMessage(message.message) }}</div>
         <div class="message-glow"></div>
       </div>
     </div>
@@ -27,6 +27,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { filterMessage } from '../utils/messageFilter';
 
 interface Message {
   message: string;
