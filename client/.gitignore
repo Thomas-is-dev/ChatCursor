@@ -16,6 +16,7 @@ node_modules
 dist
 dist-ssr
 *.local
+!.env.local
 
 # Editor directories and files
 .vscode/*
@@ -28,7 +29,5 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment files containing sensitive information
-.env.*
-!.env.development
-!.env.production 
+# Production environment file for security
+.env.production 
