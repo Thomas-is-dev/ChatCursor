@@ -122,7 +122,8 @@ export const handleUnencryptedMessage = (
     
     // Create the message object with the server-filtered, server-encrypted content
     const messageObject = {
-      encryptedContent: encrypted,
+      // encryptedContent: encrypted,
+      encryptedContent: filteredMessage,
       iv: iv.toString('hex'),
       username: username,
       time: new Date().toLocaleTimeString(),

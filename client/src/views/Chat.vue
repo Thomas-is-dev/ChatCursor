@@ -184,12 +184,14 @@ const handleIncomingMessage = (messageData: {
         displayMessage = myMessage.message;
       } else {
         // Decrypt if not found locally
-        displayMessage = store.decryptMessage(messageData.encryptedContent, messageData.iv);
+        // displayMessage = store.decryptMessage(messageData.encryptedContent, messageData.iv);
+        displayMessage = messageData.encryptedContent
         // Server has already filtered the message, no need to filter again
       }
     } else {
       // Decrypt message from other users
-      displayMessage = store.decryptMessage(messageData.encryptedContent, messageData.iv);
+      // displayMessage = store.decryptMessage(messageData.encryptedContent, messageData.iv);
+      displayMessage = messageData.encryptedContent
       // Server has already filtered the message, no need to filter again
     }
   } catch (error) {
